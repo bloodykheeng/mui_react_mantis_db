@@ -8,6 +8,7 @@ import Chip from '@mui/material/Chip';
 
 // project import
 import Logo from './LogoMain';
+import DarkLogo from '../../assets/images/logo/Health_Star-removebg-preview.png';
 import config from 'config';
 
 // ==============================|| MAIN LOGO ||============================== //
@@ -16,9 +17,11 @@ const LogoSection = ({ sx, to }) => {
   return (
     <ButtonBase disableRipple component={Link} to={!to ? config.defaultPath : to} sx={sx}>
       <Stack direction="row" spacing={1} alignItems="center">
-        <Logo />
+        {/* <Logo /> */}
+        <img src={DarkLogo} alt="logo" width="100" />
+
         <Chip
-          label={import.meta.env.VITE_APP_VERSION}
+          label={import.meta.env.VITE_APP_NAME}
           variant="outlined"
           size="small"
           color="secondary"

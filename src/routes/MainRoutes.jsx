@@ -3,6 +3,7 @@ import { lazy } from 'react';
 // project import
 import Loadable from 'components/Loadable';
 import Dashboard from 'layout/Dashboard';
+import { AuthProvider } from '../context/AuthContext';
 
 const Color = Loadable(lazy(() => import('pages/component-overview/color')));
 const Typography = Loadable(lazy(() => import('pages/component-overview/typography')));
@@ -16,7 +17,11 @@ const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')))
 
 const MainRoutes = {
   path: '/',
-  element: <Dashboard />,
+  element: (
+    <AuthProvider>
+      <Dashboard />
+    </AuthProvider>
+  ),
   children: [
     {
       path: '/',

@@ -65,15 +65,25 @@ Mantis offers everything needed to build an advanced dashboard application. In t
 
 ## Table of contents
 
-- [Getting started](#getting-started)
-- [Documentation](#documentation)
-- [Technology stack](#technology-stack)
-- [Author](#author)
-- [Issues?](#issues)
-- [License](#license)
-- [More Free React Templates](#more-free-react-material-admin-dashboard-templates)
-- [More Pro React Templates](#more-premium-react-material-admin-dashboard-templates)
-- [Follow us](#follow-us)
+- [Mantis Free React Material UI Dashboard Template ](#mantis-free-react-material-ui-dashboard-template-)
+    - [Name Derived From Nature](#name-derived-from-nature)
+  - [Why Mantis?](#why-mantis)
+  - [Free Mantis React version](#free-mantis-react-version)
+      - [Preview](#preview)
+      - [Download](#download)
+  - [Mantis Pro version](#mantis-pro-version)
+      - [Preview](#preview-1)
+      - [Purchase](#purchase)
+  - [Table of contents](#table-of-contents)
+  - [Getting Started](#getting-started)
+  - [Documentation](#documentation)
+  - [Technology stack](#technology-stack)
+  - [Author](#author)
+  - [Issues](#issues)
+  - [License](#license)
+  - [More Free React Material Admin Dashboard Templates](#more-free-react-material-admin-dashboard-templates)
+  - [More premium React Material Admin Dashboard Templates](#more-premium-react-material-admin-dashboard-templates)
+  - [Follow us](#follow-us)
 
 ## Getting Started
 
