@@ -18,7 +18,7 @@ import Divider from '@mui/material/Divider';
 
 // third party
 import * as Yup from 'yup';
-import { Formik, Field } from 'formik';
+import { Formik, Field, Form } from 'formik';
 
 import { Select, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
 
@@ -138,6 +138,7 @@ export default function AuthRegister() {
           phone: '',
           yearOfBirth: '',
           role: '',
+          healthFacility: '',
           agree: false,
           submit: null
         }}
@@ -153,6 +154,10 @@ export default function AuthRegister() {
             .max(moment().subtract(18, 'years'), 'You must be at least 18 years old')
             .required('Year of Birth is required'),
           role: Yup.string().required('Role is required'),
+          healthFacility: Yup.string().when('role', {
+            is: 'Health Facility Manager',
+            then: Yup.string().required('Health Facility is required')
+          }),
           agree: Yup.boolean().oneOf([true], 'You must accept the terms and conditions')
         })}
         onSubmit={(values, { setSubmitting }) => {
@@ -240,9 +245,17 @@ export default function AuthRegister() {
                       <Select
                         id="role-signup"
                         value={field.value}
+                        // onChange={(e) => {
+                        //   setSelectedRole(e.target.value);
+                        //   form.setFieldValue(field.name, e.target.value);
+                        // }}
                         onChange={(e) => {
-                          setSelectedRole(e.target.value);
-                          form.setFieldValue(field.name, e.target.value);
+                          const value = e.target.value;
+                          setSelectedRole(value);
+                          form.setFieldValue(field.name, value);
+                          if (value !== 'Health Facility Manager') {
+                            form.setFieldValue('healthFacility', '');
+                          }
                         }}
                         displayEmpty
                         fullWidth
@@ -251,15 +264,45 @@ export default function AuthRegister() {
                         <MenuItem value="" disabled>
                           Select a Role
                         </MenuItem>
-                        <MenuItem value="Buyer">Buyer</MenuItem>
-                        <MenuItem value="Vendor">Vendor</MenuItem>
-                        <MenuItem value="Seller">Seller</MenuItem>
+                        <MenuItem value="Patient">Patient</MenuItem>
+                        <MenuItem value="Health Facility Manager">Health Facility Manager</MenuItem>
+                        <MenuItem value="Admin">Admin</MenuItem>
                       </Select>
                       {meta.touched && meta.error && <FormHelperText error>{meta.error}</FormHelperText>}
                     </Stack>
                   )}
                 </Field>
               </Grid>
+              {selectedRole === 'Health Facility Manager' && (
+                <Grid item xs={12} md={6}>
+                  <Field name="healthFacility">
+                    {({ field, form, meta }) => (
+                      <Stack spacing={1}>
+                        <InputLabel htmlFor="healthFacility-signup">Health Facility*</InputLabel>
+                        <Select
+                          id="healthFacility-signup"
+                          value={field.value}
+                          onChange={(e) => {
+                            form.setFieldValue(field.name, e.target.value);
+                          }}
+                          displayEmpty
+                          fullWidth
+                          error={Boolean(meta.touched && meta.error)}
+                        >
+                          <MenuItem value="" disabled>
+                            Select a Health Facility
+                          </MenuItem>
+                          <MenuItem value="Case Clinic">Case Clinic</MenuItem>
+                          <MenuItem value="Mulago">Mulago</MenuItem>
+                          <MenuItem value="Mengo">Mengo</MenuItem>
+                          {/* Add more facilities as needed */}
+                        </Select>
+                        {meta.touched && meta.error && <FormHelperText error>{meta.error}</FormHelperText>}
+                      </Stack>
+                    )}
+                  </Field>
+                </Grid>
+              )}
               <Grid item xs={12} md={6}>
                 <Stack spacing={1}>
                   <InputLabel htmlFor="phone-signup">Phone Number*</InputLabel>
