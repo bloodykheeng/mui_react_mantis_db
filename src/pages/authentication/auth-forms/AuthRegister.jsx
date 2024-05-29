@@ -16,6 +16,14 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 
+// ============== date ============
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+// import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+// import AdapterMoment from '@date-io/moment';
+// import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+
 // third party
 import * as Yup from 'yup';
 import { Formik, Field, Form } from 'formik';
@@ -136,7 +144,7 @@ export default function AuthRegister() {
           company: '',
           password: '',
           phone: '',
-          yearOfBirth: '',
+          dateOfBirth: null,
           role: '',
           healthFacility: '',
           agree: false,
@@ -150,9 +158,10 @@ export default function AuthRegister() {
           phone: Yup.string()
             .matches(/^\+[1-9]\d{1,14}$/, 'Phone number is not valid')
             .required('Phone number is required'),
-          yearOfBirth: Yup.date()
-            .max(moment().subtract(18, 'years'), 'You must be at least 18 years old')
-            .required('Year of Birth is required'),
+          dateOfBirth: Yup.date().required('Date of Birth is required'),
+          // dateOfBirth: Yup.date()
+          //   .max(moment().subtract(18, 'years'), 'You must be at least 18 years old')
+          //   .required('Year of Birth is required'),
           role: Yup.string().required('Role is required'),
           healthFacility: Yup.string().when('role', {
             is: 'Health Facility Manager',
@@ -273,6 +282,7 @@ export default function AuthRegister() {
                   )}
                 </Field>
               </Grid>
+
               {selectedRole === 'Health Facility Manager' && (
                 <Grid item xs={12} md={6}>
                   <Field name="healthFacility">
@@ -324,16 +334,16 @@ export default function AuthRegister() {
                   </FormHelperText>
                 )}
               </Grid>
-              <Grid item xs={12} md={6}>
+              {/* <Grid item xs={12} md={6}>
                 <Stack spacing={1}>
-                  <InputLabel htmlFor="yearOfBirth-signup">Year of Birth*</InputLabel>
+                  <InputLabel htmlFor="dateOfBirth-signup">Date of Birth*</InputLabel>
                   <OutlinedInput
                     fullWidth
-                    error={Boolean(touched.yearOfBirth && errors.yearOfBirth)}
-                    id="yearOfBirth-signup"
+                    error={Boolean(touched.dateOfBirth && errors.dateOfBirth)}
+                    id="dateOfBirth-signup"
                     type="date"
-                    value={values.yearOfBirth}
-                    name="yearOfBirth"
+                    value={values.dateOfBirth}
+                    name="dateOfBirth"
                     onBlur={handleBlur}
                     onChange={handleChange}
                     inputProps={{
@@ -341,11 +351,30 @@ export default function AuthRegister() {
                     }}
                   />
                 </Stack>
-                {touched.yearOfBirth && errors.yearOfBirth && (
-                  <FormHelperText error id="helper-text-yearOfBirth-signup">
-                    {errors.yearOfBirth}
+                {touched.dateOfBirth && errors.dateOfBirth && (
+                  <FormHelperText error id="helper-text-dateOfBirth-signup">
+                    {errors.dateOfBirth}
                   </FormHelperText>
                 )}
+              </Grid> */}
+
+              <Grid item xs={12} md={6}>
+                <Field name="dateOfBirth">
+                  {({ field, meta }) => (
+                    <Stack spacing={1}>
+                      <InputLabel htmlFor="dateOfBirth">Date of Birth*</InputLabel>
+                      <LocalizationProvider dateAdapter={AdapterMoment}>
+                        <DatePicker
+                          views={['year', 'month', 'day']}
+                          value={field.value}
+                          onChange={(value) => field.onChange({ target: { value, name: field.name } })}
+                          renderInput={(params) => <OutlinedInput {...params} fullWidth error={Boolean(meta.touched && meta.error)} />}
+                        />
+                      </LocalizationProvider>
+                      {meta.touched && meta.error && <FormHelperText error>{meta.error}</FormHelperText>}
+                    </Stack>
+                  )}
+                </Field>
               </Grid>
               <Grid item xs={12}>
                 <Field name="agree" type="checkbox">
