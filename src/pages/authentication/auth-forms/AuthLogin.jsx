@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 
 // material-ui
@@ -29,10 +29,28 @@ import EyeOutlined from '@ant-design/icons/EyeOutlined';
 import EyeInvisibleOutlined from '@ant-design/icons/EyeInvisibleOutlined';
 import FirebaseSocial from './FirebaseSocial';
 
+//=========== login
+import { useNavigate } from 'react-router-dom';
+import { obtainToken, forgotPassword } from '../../../services/auth/auth-api.js';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+
+//==== google
+import { postThirdPartyRegisterAuth, postThirdPartyLoginAuth } from '../../../services/auth/auth-api.js';
+import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
+import { toast } from 'react-toastify';
+
 // ============================|| JWT - LOGIN ||============================ //
 
 export default function AuthLogin({ isDemo = false }) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
   const [checked, setChecked] = React.useState(false);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [googleLoginIsLoading, setGoogleLoginIsLoading] = useState(false);
 
   const [showPassword, setShowPassword] = React.useState(false);
   const handleClickShowPassword = () => {
@@ -42,6 +60,52 @@ export default function AuthLogin({ isDemo = false }) {
   const handleMouseDownPassword = (event) => {
     event.preventDefault();
   };
+
+  //======================== normal login
+  const loginMutation = useMutation({
+    mutationFn: (variables) => obtainToken(variables?.email, variables?.password),
+    onSuccess: (data) => {
+      console.log('successfull login : xxxxx data : ', data);
+      setIsLoading(false);
+      queryClient.invalidateQueries([]);
+      //   axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+      navigate('/');
+      // window.location.reload();
+    },
+    onError: (error) => {
+      error?.response?.data?.message
+        ? toast.error(error?.response?.data?.message)
+        : !error?.response
+          ? toast.warning('Check Your Internet Connection Please')
+          : toast.error('An Error Occured Please Contact Admin');
+      setIsLoading(false);
+
+      console.log('login error : ', error);
+    }
+  });
+
+  //======================= google login =========================
+  const thirdPartyLoginAuthMutation = useMutation({
+    mutationFn: (variables) => postThirdPartyLoginAuth(variables),
+    onSuccess: (data) => {
+      console.log('postThirdPartyAuth data : ', data);
+      setIsLoading(false);
+      queryClient.invalidateQueries([]);
+      //   axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+      navigate('/');
+      // window.location.reload();
+    },
+    onError: (error) => {
+      error?.response?.data?.message
+        ? toast.error(error?.response?.data?.message)
+        : !error?.response
+          ? toast.warning('Check Your Internet Connection Please')
+          : toast.error('An Error Occured Please Contact Admin');
+      setIsLoading(false);
+
+      console.log('login error : ', error);
+    }
+  });
 
   return (
     <>
@@ -152,7 +216,28 @@ export default function AuthLogin({ isDemo = false }) {
                 </Divider>
               </Grid>
               <Grid item xs={12}>
-                <FirebaseSocial />
+                <center>
+                  <GoogleLogin
+                    // theme={theme === 'dark' ? 'filled_blue' : 'outline'}
+                    onSuccess={async (response) => {
+                      console.log(response);
+                      let responseDecoded = jwtDecode(response?.credential);
+                      console.log('🚀 ~ Login ~ responseDecoded:', responseDecoded);
+                      let dataToPost = {
+                        name: responseDecoded?.name,
+                        picture: responseDecoded?.picture,
+                        client_id: response?.clientId,
+                        provider: 'google',
+                        email: responseDecoded?.email
+                      };
+                      thirdPartyLoginAuthMutation.mutate(dataToPost);
+                    }}
+                    onError={() => {
+                      console.log('Login Failed');
+                    }}
+                  />
+                </center>
+                {/* <FirebaseSocial /> */}
               </Grid>
             </Grid>
           </form>

@@ -14,6 +14,9 @@ import 'react-toastify/dist/ReactToastify.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 
+// google login
+import { GoogleOAuthProvider } from '@react-oauth/google';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -31,12 +34,14 @@ const queryClient = new QueryClient({
 export default function App() {
   return (
     <ThemeCustomization>
-      <ScrollTop>
-        <QueryClientProvider client={queryClient}>
-          <RouterProvider router={router} />
-          <ReactQueryDevtools initialIsOpen={true} />
-        </QueryClientProvider>
-      </ScrollTop>
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_APP_GOOGLE_CLIENT_ID}>
+        <ScrollTop>
+          <QueryClientProvider client={queryClient}>
+            <RouterProvider router={router} />
+            <ReactQueryDevtools initialIsOpen={true} />
+          </QueryClientProvider>
+        </ScrollTop>
+      </GoogleOAuthProvider>
 
       <ToastContainer
         position="top-center"

@@ -1,11 +1,14 @@
 import { Outlet } from 'react-router-dom';
+import { AuthProvider } from '../../context/AuthContext';
 
 // ==============================|| MINIMAL LAYOUT ||============================== //
 
 export default function MinimalLayout() {
   return (
     <>
-      <Outlet />
+      <AuthProvider>
+        <Outlet />
+      </AuthProvider>
     </>
   );
 }

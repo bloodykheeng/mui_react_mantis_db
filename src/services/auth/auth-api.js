@@ -40,6 +40,20 @@ export async function addUser(data) {
   return response;
 }
 
+export async function postThirdPartyRegisterAuth(data) {
+  const response = await axiosAPI.post('third-party-register-auth', data);
+  setNewHeaders(response);
+  setProfileHeaders(response);
+  return response;
+}
+
+export async function postThirdPartyLoginAuth(data) {
+  const response = await axiosAPI.post('third-party-login-auth', data);
+  setNewHeaders(response);
+  setProfileHeaders(response);
+  return response;
+}
+
 // eslint-disable-next-line
 export async function logout() {
   localStorage.removeItem('access_token');
