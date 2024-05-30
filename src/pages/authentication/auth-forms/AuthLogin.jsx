@@ -17,6 +17,8 @@ import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 
+import { Select, MenuItem, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, CircularProgress } from '@mui/material';
+
 // third party
 import * as Yup from 'yup';
 import { Formik } from 'formik';
@@ -47,6 +49,9 @@ export default function AuthLogin({ isDemo = false }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  const [isSubmittingFormData, setIsSubmittingFormData] = useState(false);
+  const [isLoadingThirdPartyLogin, setIsLoadingThirdPartyLogin] = useState(false);
+
   const [checked, setChecked] = React.useState(false);
 
   const [isLoading, setIsLoading] = useState(false);
@@ -66,7 +71,7 @@ export default function AuthLogin({ isDemo = false }) {
     mutationFn: (variables) => obtainToken(variables?.email, variables?.password),
     onSuccess: (data) => {
       console.log('successfull login : xxxxx data : ', data);
-      setIsLoading(false);
+      setIsSubmittingFormData(false);
       queryClient.invalidateQueries([]);
       //   axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
       navigate('/');
@@ -78,7 +83,7 @@ export default function AuthLogin({ isDemo = false }) {
         : !error?.response
           ? toast.warning('Check Your Internet Connection Please')
           : toast.error('An Error Occured Please Contact Admin');
-      setIsLoading(false);
+      setIsSubmittingFormData(false);
 
       console.log('login error : ', error);
     }
@@ -89,7 +94,7 @@ export default function AuthLogin({ isDemo = false }) {
     mutationFn: (variables) => postThirdPartyLoginAuth(variables),
     onSuccess: (data) => {
       console.log('postThirdPartyAuth data : ', data);
-      setIsLoading(false);
+      setIsLoadingThirdPartyLogin(false);
       queryClient.invalidateQueries([]);
       //   axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
       navigate('/');
@@ -101,11 +106,15 @@ export default function AuthLogin({ isDemo = false }) {
         : !error?.response
           ? toast.warning('Check Your Internet Connection Please')
           : toast.error('An Error Occured Please Contact Admin');
-      setIsLoading(false);
+      setIsLoadingThirdPartyLogin(false);
 
       console.log('login error : ', error);
     }
   });
+
+  const handleSubmitFormData = (formValues) => {
+    loginMutation.mutate(formValues);
+  };
 
   return (
     <>
@@ -119,6 +128,11 @@ export default function AuthLogin({ isDemo = false }) {
           email: Yup.string().email('Must be a valid email').max(255).required('Email is required'),
           password: Yup.string().max(255).required('Password is required')
         })}
+        onSubmit={(values, { setSubmitting, setErrors, validateForm }) => {
+          // handle form submission
+          setIsSubmittingFormData(true);
+          handleSubmitFormData(values);
+        }}
       >
         {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
           <form noValidate onSubmit={handleSubmit}>
@@ -193,7 +207,7 @@ export default function AuthLogin({ isDemo = false }) {
                     }
                     label={<Typography variant="h6">Keep me sign in</Typography>}
                   />
-                  <Link variant="h6" component={RouterLink} color="text.primary">
+                  <Link variant="h6" to="/reset" component={RouterLink} color="text.primary">
                     Forgot Password?
                   </Link>
                 </Stack>
@@ -206,7 +220,7 @@ export default function AuthLogin({ isDemo = false }) {
               <Grid item xs={12}>
                 <AnimateButton>
                   <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="primary">
-                    Login
+                    {isSubmittingFormData ? <CircularProgress size={24} /> : 'Login'}
                   </Button>
                 </AnimateButton>
               </Grid>
@@ -217,25 +231,30 @@ export default function AuthLogin({ isDemo = false }) {
               </Grid>
               <Grid item xs={12}>
                 <center>
-                  <GoogleLogin
-                    // theme={theme === 'dark' ? 'filled_blue' : 'outline'}
-                    onSuccess={async (response) => {
-                      console.log(response);
-                      let responseDecoded = jwtDecode(response?.credential);
-                      console.log('🚀 ~ Login ~ responseDecoded:', responseDecoded);
-                      let dataToPost = {
-                        name: responseDecoded?.name,
-                        picture: responseDecoded?.picture,
-                        client_id: response?.clientId,
-                        provider: 'google',
-                        email: responseDecoded?.email
-                      };
-                      thirdPartyLoginAuthMutation.mutate(dataToPost);
-                    }}
-                    onError={() => {
-                      console.log('Login Failed');
-                    }}
-                  />
+                  {isLoadingThirdPartyLogin ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <GoogleLogin
+                      // theme={theme === 'dark' ? 'filled_blue' : 'outline'}
+                      onSuccess={async (response) => {
+                        console.log(response);
+                        let responseDecoded = jwtDecode(response?.credential);
+                        console.log('🚀 ~ Login ~ responseDecoded:', responseDecoded);
+                        let dataToPost = {
+                          name: responseDecoded?.name,
+                          picture: responseDecoded?.picture,
+                          client_id: response?.clientId,
+                          provider: 'google',
+                          email: responseDecoded?.email
+                        };
+                        setIsLoadingThirdPartyLogin(true);
+                        thirdPartyLoginAuthMutation.mutate(dataToPost);
+                      }}
+                      onError={() => {
+                        console.log('Login Failed');
+                      }}
+                    />
+                  )}
                 </center>
                 {/* <FirebaseSocial /> */}
               </Grid>

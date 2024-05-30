@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [errors, setErrors] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [logoutMutationIsLoading, setLogoutMutationIsLoading] = useState(true);
+  const [logoutMutationIsLoading, setLogoutMutationIsLoading] = useState(false);
 
   const location = useLocation();
 

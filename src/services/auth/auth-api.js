@@ -1,11 +1,7 @@
 import axiosAPI, { setNewHeaders, setProfileHeaders } from '../axiosApi';
 
-export async function signUp(email, username, password) {
-  const response = await axiosAPI.post('accounts/register', {
-    email,
-    username,
-    password
-  });
+export async function signUp(data) {
+  const response = await axiosAPI.post('/register', data);
   localStorage.setItem('user', response.data);
   return response;
 }

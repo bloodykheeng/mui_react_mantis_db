@@ -28,7 +28,18 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import * as Yup from 'yup';
 import { Formik, Field, Form } from 'formik';
 
-import { Select, MenuItem, Checkbox, FormControlLabel } from '@mui/material';
+import {
+  Select,
+  MenuItem,
+  Checkbox,
+  FormControlLabel,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  CircularProgress
+} from '@mui/material';
 
 // project import
 import AnimateButton from 'components/@extended/AnimateButton';
@@ -65,9 +76,35 @@ export default function AuthRegister() {
   const navigate = useNavigate();
   const [showTerms, setShowTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingThirdPartySignUp, setIsLoadingThirdPartySignUp] = useState(false);
 
   const [selectedRole, setSelectedRole] = useState('');
   const [termsDialogOpen, setTermsDialogOpen] = useState(false);
+
+  // =========================== confirm submit =========================
+  const [openConfirmDiaglog, setOpenConfirmDiaglog] = useState(false);
+  const [formValues, setFormValues] = useState(null);
+  const [isSubmittingFormData, setIsSubmittingFormData] = useState(false);
+
+  const handleConfirmOpen = (values) => {
+    setFormValues(values);
+    setOpenConfirmDiaglog(true);
+  };
+
+  const handleConfirmClose = () => {
+    setOpenConfirmDiaglog(false);
+    setIsSubmittingFormData(false);
+  };
+
+  const handleConfirmSubmit = () => {
+    console.log('🚀 ~ AuthRegister ~ formValues:', formValues);
+    creactMutation.mutate({ ...formValues, status: 'active' });
+    // handle form submission
+    setOpenConfirmDiaglog(false);
+    // setIsSubmittingFormData(false);
+  };
+
+  //========================================= confirm submit end ======================
 
   const handleTermsDialogToggle = (e) => {
     e.preventDefault();
@@ -96,11 +133,15 @@ export default function AuthRegister() {
     mutationFn: signUp,
     onSuccess: () => {
       setIsLoading(false);
+      setIsSubmittingFormData(false);
       // queryClient.invalidateQueries(["spare-parts"]);
       toast.success('Account Created Successfully');
     },
     onError: (error) => {
+      console.log('🚀 ~ AuthRegister ~ error:', error);
       setIsLoading(false);
+      setIsSubmittingFormData(false);
+
       // props.onClose();
       error?.response?.data?.message
         ? toast.error(error?.response?.data?.message)
@@ -116,7 +157,7 @@ export default function AuthRegister() {
     mutationFn: (variables) => postThirdPartyRegisterAuth(variables),
     onSuccess: (data) => {
       console.log('postThirdPartyAuth data : ', data);
-      setIsLoading(false);
+      setIsLoadingThirdPartySignUp(false);
       queryClient.invalidateQueries([]);
       //   axios.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
       navigate('/');
@@ -128,20 +169,28 @@ export default function AuthRegister() {
         : !error?.response
           ? toast.warning('Check Your Internet Connection Please')
           : toast.error('An Error Occured Please Contact Admin');
-      setIsLoading(false);
+      setIsLoadingThirdPartySignUp(false);
 
       console.log('login error : ', error);
     }
   });
 
+  //=========================================
+  const showWarningToast = (errors = {}) => {
+    for (const key in errors) {
+      // eslint-disable-next-line no-prototype-builtins
+      if (errors.hasOwnProperty(key)) {
+        toast.warn(errors[key]);
+      }
+    }
+  };
+
   return (
     <>
       <Formik
         initialValues={{
-          firstname: '',
-          lastname: '',
+          name: '',
           email: '',
-          company: '',
           password: '',
           phone: '',
           dateOfBirth: null,
@@ -151,8 +200,7 @@ export default function AuthRegister() {
           submit: null
         }}
         validationSchema={Yup.object().shape({
-          firstname: Yup.string().max(255).required('First Name is required'),
-          lastname: Yup.string().max(255).required('Last Name is required'),
+          name: Yup.string().max(255).required('Name is required'),
           email: Yup.string().email('Must be a valid email').max(255).required('Email is required'),
           password: Yup.string().max(255).required('Password is required'),
           phone: Yup.string()
@@ -169,11 +217,22 @@ export default function AuthRegister() {
           }),
           agree: Yup.boolean().oneOf([true], 'You must accept the terms and conditions')
         })}
-        onSubmit={(values, { setSubmitting }) => {
-          console.log('🚀 ~ AuthRegister ~ values:', values);
+        onSubmit={(values, { setSubmitting, setErrors, validateForm }) => {
+          // console.log('🚀 ~ AuthRegister ~ values:', values);
+
+          // validateForm().then((errors) => {
+          //   if (Object.keys(errors).length === 0) {
+          //     setIsSubmitting(true);
+          //     handleConfirmOpen(values);
+          //   } else {
+          //     showWarningToast(errors);
+          //     setSubmitting(false);
+          //   }
+          // });
+
           // handle form submission
-          console.log(values);
-          setSubmitting(false);
+          setIsSubmittingFormData(true);
+          handleConfirmOpen(values);
         }}
       >
         {({ errors, handleBlur, handleChange, handleSubmit, isSubmitting, touched, values }) => (
@@ -181,44 +240,22 @@ export default function AuthRegister() {
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Stack spacing={1}>
-                  <InputLabel htmlFor="firstname-signup">First Name*</InputLabel>
+                  <InputLabel htmlFor="name-signup">Name*</InputLabel>
                   <OutlinedInput
-                    id="firstname-login"
-                    type="firstname"
-                    value={values.firstname}
-                    name="firstname"
+                    id="name-signup"
+                    type="name"
+                    value={values.name}
+                    name="name"
                     onBlur={handleBlur}
                     onChange={handleChange}
-                    placeholder="John"
+                    placeholder="Enter your name"
                     fullWidth
-                    error={Boolean(touched.firstname && errors.firstname)}
+                    error={Boolean(touched.name && errors.name)}
                   />
                 </Stack>
-                {touched.firstname && errors.firstname && (
-                  <FormHelperText error id="helper-text-firstname-signup">
-                    {errors.firstname}
-                  </FormHelperText>
-                )}
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Stack spacing={1}>
-                  <InputLabel htmlFor="lastname-signup">Last Name*</InputLabel>
-                  <OutlinedInput
-                    fullWidth
-                    error={Boolean(touched.lastname && errors.lastname)}
-                    id="lastname-signup"
-                    type="lastname"
-                    value={values.lastname}
-                    name="lastname"
-                    onBlur={handleBlur}
-                    onChange={handleChange}
-                    placeholder="Doe"
-                    inputProps={{}}
-                  />
-                </Stack>
-                {touched.lastname && errors.lastname && (
-                  <FormHelperText error id="helper-text-lastname-signup">
-                    {errors.lastname}
+                {touched.name && errors.name && (
+                  <FormHelperText error id="helper-text-name-signup">
+                    {errors.name}
                   </FormHelperText>
                 )}
               </Grid>
@@ -235,7 +272,7 @@ export default function AuthRegister() {
                     name="email"
                     onBlur={handleBlur}
                     onChange={handleChange}
-                    placeholder="demo@company.com"
+                    placeholder="Enter Your email"
                     inputProps={{}}
                   />
                 </Stack>
@@ -325,7 +362,7 @@ export default function AuthRegister() {
                     name="phone"
                     onBlur={handleBlur}
                     onChange={handleChange}
-                    placeholder="1234567890"
+                    placeholder="Enter Your Phone Number"
                   />
                 </Stack>
                 {touched.phone && errors.phone && (
@@ -366,8 +403,13 @@ export default function AuthRegister() {
                       <LocalizationProvider dateAdapter={AdapterMoment}>
                         <DatePicker
                           views={['year', 'month', 'day']}
-                          value={field.value}
-                          onChange={(value) => field.onChange({ target: { value, name: field.name } })}
+                          // value={field.value}
+                          value={field.value ? moment(field.value) : null}
+                          // onChange={(value) => field.onChange({ target: { value, name: field.name } })}
+                          onChange={(value) => {
+                            const formattedValue = value ? moment(value).format('YYYY-MM-DD') : '';
+                            field.onChange({ target: { value: formattedValue, name: field.name } });
+                          }}
                           renderInput={(params) => <OutlinedInput {...params} fullWidth error={Boolean(meta.touched && meta.error)} />}
                         />
                       </LocalizationProvider>
@@ -425,7 +467,7 @@ export default function AuthRegister() {
                         </IconButton>
                       </InputAdornment>
                     }
-                    placeholder="******"
+                    placeholder="Enter Your Password"
                     inputProps={{}}
                   />
                 </Stack>
@@ -466,8 +508,16 @@ export default function AuthRegister() {
               )}
               <Grid item xs={12}>
                 <AnimateButton>
-                  <Button disableElevation disabled={isSubmitting} fullWidth size="large" type="submit" variant="contained" color="primary">
-                    Create Account
+                  <Button
+                    disableElevation
+                    disabled={isSubmittingFormData}
+                    fullWidth
+                    size="large"
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                  >
+                    {isSubmittingFormData ? <CircularProgress size={24} /> : 'Create Account'}
                   </Button>
                 </AnimateButton>
               </Grid>
@@ -478,25 +528,31 @@ export default function AuthRegister() {
               </Grid>
               <Grid item xs={12}>
                 <center>
-                  <GoogleLogin
-                    // theme={theme === "dark" ? "filled_blue" : "outline"}
-                    onSuccess={async (response) => {
-                      console.log(response);
-                      let responseDecoded = jwtDecode(response?.credential);
-                      // console.log('🚀 ~ Login ~ responseDecoded:', responseDecoded);
-                      let dataToPost = {
-                        name: responseDecoded?.name,
-                        picture: responseDecoded?.picture,
-                        client_id: response?.clientId,
-                        provider: 'google',
-                        email: responseDecoded?.email
-                      };
-                      thirdPartyRegisterAuthMutation.mutate(dataToPost);
-                    }}
-                    onError={() => {
-                      console.log('Login Failed');
-                    }}
-                  />
+                  {isLoadingThirdPartySignUp ? (
+                    <CircularProgress size={24} />
+                  ) : (
+                    <GoogleLogin
+                      // theme={theme === "dark" ? "filled_blue" : "outline"}
+                      onSuccess={async (response) => {
+                        console.log(response);
+                        let responseDecoded = jwtDecode(response?.credential);
+                        // console.log('🚀 ~ Login ~ responseDecoded:', responseDecoded);
+                        let dataToPost = {
+                          name: responseDecoded?.name,
+                          picture: responseDecoded?.picture,
+                          client_id: response?.clientId,
+                          provider: 'google',
+                          role: 'patient',
+                          email: responseDecoded?.email
+                        };
+                        setIsLoadingThirdPartySignUp(true);
+                        thirdPartyRegisterAuthMutation.mutate(dataToPost);
+                      }}
+                      onError={() => {
+                        console.log('Login Failed');
+                      }}
+                    />
+                  )}
                 </center>
               </Grid>
             </Grid>
@@ -504,6 +560,25 @@ export default function AuthRegister() {
         )}
       </Formik>
       <TermsDialog open={termsDialogOpen} handleClose={handleTermsDialogToggle} />
+      <Dialog
+        open={openConfirmDiaglog}
+        onClose={handleConfirmClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{'Confirm Submission'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">Are you sure you want to submit this form?</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleConfirmClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmSubmit} color="primary">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

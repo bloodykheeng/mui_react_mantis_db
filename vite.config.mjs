@@ -7,7 +7,18 @@ import jsconfigPaths from 'vite-jsconfig-paths';
 // ----------------------------------------------------------------------
 
 export default defineConfig({
-  plugins: [react(), jsconfigPaths()],
+  plugins: [
+    react({
+      jsxImportSource: '@emotion/react',
+      babel: {
+        plugins: ['@emotion/babel-plugin']
+      }
+    }),
+    jsconfigPaths()
+  ],
+  optimizeDeps: {
+    include: ['@emotion/react', '@emotion/styled', '@mui/material/Tooltip']
+  },
   // https://github.com/jpuri/react-draft-wysiwyg/issues/1317
   base: '/', // accessing env variable is not possible here. So hard coding this.
   define: {

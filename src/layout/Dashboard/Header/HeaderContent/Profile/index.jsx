@@ -30,6 +30,21 @@ import SettingOutlined from '@ant-design/icons/SettingOutlined';
 import UserOutlined from '@ant-design/icons/UserOutlined';
 import avatar1 from 'assets/images/users/avatar-1.png';
 
+import {
+  Select,
+  MenuItem,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  CircularProgress
+} from '@mui/material';
+
+//============ get Auth Context ===============
+import useAuthContext from '../../../../../context/AuthContext';
+
 // tab panel wrapper
 function TabPanel({ children, value, index, ...other }) {
   return (
@@ -50,6 +65,8 @@ function a11yProps(index) {
 
 export default function Profile() {
   const theme = useTheme();
+
+  const { user, logoutMutation, logoutMutationIsLoading } = useAuthContext();
 
   const anchorRef = useRef(null);
   const [open, setOpen] = useState(false);
@@ -72,6 +89,30 @@ export default function Profile() {
 
   const iconBackColorOpen = 'grey.100';
 
+  // =========================== confirm submit =========================
+  const [openConfirmDiaglog, setOpenConfirmDiaglog] = useState(false);
+  const [formValues, setFormValues] = useState(null);
+  const [isSubmittingFormData, setIsSubmittingFormData] = useState(false);
+
+  const handleConfirmOpen = (values) => {
+    setFormValues(values);
+    setOpenConfirmDiaglog(true);
+  };
+
+  const handleConfirmClose = () => {
+    setOpenConfirmDiaglog(false);
+    setIsSubmittingFormData(false);
+  };
+
+  const handleConfirmSubmit = () => {
+    logoutMutation.mutate();
+    // handle form submission
+    setOpenConfirmDiaglog(false);
+    // setIsSubmittingFormData(false);
+  };
+
+  //========================================= confirm submit end ======================
+
   return (
     <Box sx={{ flexShrink: 0, ml: 0.75 }}>
       <ButtonBase
@@ -91,7 +132,7 @@ export default function Profile() {
         <Stack direction="row" spacing={1.25} alignItems="center" sx={{ p: 0.5 }}>
           <Avatar alt="profile user" src={avatar1} size="sm" />
           <Typography variant="subtitle1" sx={{ textTransform: 'capitalize' }}>
-            John Doe
+            {user ? user.name : 'Guest'}
           </Typography>
         </Stack>
       </ButtonBase>
@@ -124,17 +165,22 @@ export default function Profile() {
                         <Stack direction="row" spacing={1.25} alignItems="center">
                           <Avatar alt="profile user" src={avatar1} sx={{ width: 32, height: 32 }} />
                           <Stack>
-                            <Typography variant="h6">John Doe</Typography>
+                            <Typography variant="h6">{user ? user.name : 'Guest'}</Typography>
                             <Typography variant="body2" color="text.secondary">
-                              UI/UX Designer
+                              {user ? user.role : 'Guest'}
                             </Typography>
                           </Stack>
                         </Stack>
                       </Grid>
                       <Grid item>
                         <Tooltip title="Logout">
-                          <IconButton size="large" sx={{ color: 'text.primary' }}>
-                            <LogoutOutlined />
+                          <IconButton
+                            size="large"
+                            sx={{ color: 'text.primary' }}
+                            onClick={handleConfirmOpen}
+                            disabled={logoutMutationIsLoading}
+                          >
+                            {logoutMutationIsLoading ? <CircularProgress size={24} /> : <LogoutOutlined />}
                           </IconButton>
                         </Tooltip>
                       </Grid>
@@ -181,6 +227,25 @@ export default function Profile() {
           </Transitions>
         )}
       </Popper>
+      <Dialog
+        open={openConfirmDiaglog}
+        onClose={handleConfirmClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{'Confirm Submission'}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">Are you sure you want to Log Out?</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleConfirmClose} color="primary">
+            Cancel
+          </Button>
+          <Button onClick={handleConfirmSubmit} color="primary">
+            Confirm
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
