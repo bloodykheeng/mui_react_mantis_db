@@ -22,6 +22,8 @@
     "@fontsource/poppins": "^5.0.12",
     "@fontsource/public-sans": "^5.0.17",
     "@fontsource/roboto": "^5.0.12",
+    "@material-table/core": "^6.4.4",
+    "@material-table/exporters": "^1.2.19",
     "@mui/base": "^5.0.0-beta.38",
     "@mui/icons-material": "^5.15.19",
     "@mui/lab": "^5.0.0-alpha.167",

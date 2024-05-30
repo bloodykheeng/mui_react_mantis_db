@@ -15,6 +15,12 @@ const DashboardDefault = Loadable(lazy(() => import('pages/dashboard/index')));
 
 // render - sample page
 const SamplePage = Loadable(lazy(() => import('pages/extra-pages/sample-page')));
+const HospitalPage = Loadable(lazy(() => import('views/hospitals/HospitalsPage')));
+
+//======================= user management ================
+const UsersPage = Loadable(lazy(() => import('views/user-management/users/UsersPage')));
+const RolesPage = Loadable(lazy(() => import('views/user-management/roles/RolesPage')));
+const PermissionsPage = Loadable(lazy(() => import('views/user-management/permissions/PermissionsPage')));
 
 function AuthenticatedDashboard() {
   const { isLoading } = useAuthContext();
@@ -41,17 +47,32 @@ const MainRoutes = {
       element: <AuthenticatedDashboard />,
       children: [
         {
-          path: 'color',
-          element: <Color />
+          path: '/',
+          element: <DashboardDefault />
         },
         {
           path: 'dashboard',
-          children: [
-            {
-              path: 'default',
-              element: <DashboardDefault />
-            }
-          ]
+          element: <DashboardDefault />
+        },
+        {
+          path: 'hospitals',
+          element: <HospitalPage />
+        },
+        {
+          path: 'users',
+          element: <UsersPage />
+        },
+        {
+          path: 'roles',
+          element: <RolesPage />
+        },
+        {
+          path: 'permissions',
+          element: <PermissionsPage />
+        },
+        {
+          path: 'color',
+          element: <Color />
         },
         {
           path: 'sample-page',

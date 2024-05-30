@@ -35,7 +35,6 @@ export default function DashboardLayout() {
       <Box component="main" sx={{ width: 'calc(100% - 260px)', flexGrow: 1, p: { xs: 2, sm: 3 } }}>
         <Toolbar />
         <Breadcrumbs navigation={navigation} title />
-        <h1>hello world testing</h1>
         <Outlet />
       </Box>
     </Box>
