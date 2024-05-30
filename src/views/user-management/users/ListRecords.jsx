@@ -74,7 +74,9 @@ function ListRecords({ loggedInUserData }) {
     setShowUserForm(false);
   };
 
-  const getListOfUsers = useQuery(['users'], getAllUsers, {
+  const getListOfUsers = useQuery({
+    queryKey: ['users'],
+    queryFn: getAllUsers,
     onSuccess: (data) => {
       console.log('list of all users : ', data);
     },
@@ -90,7 +92,8 @@ function ListRecords({ loggedInUserData }) {
   });
   console.log('users list : ', getListOfUsers?.data?.data);
 
-  const deleteUserMutation = useMutation(deleteUserById, {
+  const deleteUserMutation = useMutation({
+    mutationFn: deleteUserById,
     onSuccess: (data) => {
       queryClient.resetQueries(['users']);
       setLoading(false);
@@ -191,7 +194,7 @@ function ListRecords({ loggedInUserData }) {
           </Box>
           <MuiTable
             tableTitle="Users"
-            tableData={getListOfUsers?.data?.data}
+            tableData={getListOfUsers?.data?.data ?? []}
             tableColumns={columns}
             handleShowEditForm={handleShowEditForm}
             handleDelete={(e, item_id) => handleDelete(e, item_id)}
