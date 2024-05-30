@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useMemo } from 'react';
+import React, { useEffect, useState, forwardRef, useMemo, useRef } from 'react';
 import MaterialTable from '@material-table/core';
 // import MaterialTable from "material-table";
 // import { FileEarmarkBarGraphFill, Trash } from "react-bootstrap-icons";
@@ -84,8 +84,18 @@ const MuiTable = ({
   hideRowDelete,
   handleViewPdf,
   hideViewPdfRow,
-  showViewPdf
+  showViewPdf,
+
+  //pagination
+  handleMaterialTableQueryPromise = async () => {},
+  current_page,
+  totalCount,
+  setTableQueryObject = () => {}
 }) => {
+  const memorisedTableData = useMemo(() => {
+    return tableData;
+  }, [tableData]);
+
   const [mTableActions, setMTableActions] = useState([]);
 
   useEffect(() => {}, []);
@@ -269,6 +279,9 @@ const MuiTable = ({
     };
   }
 
+  const tableDataRef = useRef();
+  tableDataRef.current = memorisedTableData;
+
   return (
     <div>
       <MaterialTable
@@ -276,7 +289,33 @@ const MuiTable = ({
         isLoading={loading}
         columns={tableColumns}
         onSelectionChange={(rows) => typeof selectionChange === 'function' && selectionChange(rows)}
-        data={tableData}
+        data={(query) =>
+          new Promise((resolve, reject) => {
+            // setTableQueryObject(query);
+            // prepare your data and then call resolve like this:
+            if (!loading) {
+              handleMaterialTableQueryPromise(query)
+                .then((result) => {
+                  console.log('Yah ive resolvd');
+                  resolve({
+                    data: tableDataRef.current,
+                    page: result?.page, // Adjust to 0-indexed page
+                    totalCount: result?.totalCount
+                  });
+                })
+                .catch((error) => {
+                  console.log('Yah ive resolvd 2');
+                  reject(error);
+                });
+            }
+
+            // resolve({
+            //   data: tableData,
+            //   page: current_page,
+            //   totalCount: totalCount
+            // });
+          })
+        }
         title={tableTitle}
         options={tableOptions}
         actions={[

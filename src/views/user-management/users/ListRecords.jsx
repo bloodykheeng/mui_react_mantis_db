@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 
 import {
   getAllUsers,
@@ -39,9 +39,17 @@ import {
 } from '@mui/material';
 import { Delete as DeleteIcon } from '@mui/icons-material';
 
-function ListRecords({ loggedInUserData }) {
+//============ get Auth Context ===============
+import useAuthContext from '../../../context/AuthContext';
+
+function ListRecords() {
+  const { user: loggedInUserData, logoutMutation, logoutMutationIsLoading } = useAuthContext();
+  console.log('🚀 ~ ListRecords ~ loggedInUserData:', loggedInUserData);
+
   const queryClient = useQueryClient();
   const [selectedItem, setSelectedItem] = useState({ id: null });
+  const [tableQueryObject, setTableQueryObject] = useState();
+  console.log('🚀 ~ ListRecords ~ tableQueryObject:', tableQueryObject);
 
   const [showUserForm, setShowUserForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -74,35 +82,91 @@ function ListRecords({ loggedInUserData }) {
     setShowUserForm(false);
   };
 
+  //=================== handle table server side rendering ==================
+  const [pageParam, setPageParam] = useState(1);
+  const [search, setSearch] = useState();
+  const [pageSize, setpageSize] = useState();
+
+  const getListOfUsersRef = useRef();
+
   const getListOfUsers = useQuery({
-    queryKey: ['users'],
-    queryFn: getAllUsers,
-    onSuccess: (data) => {
-      console.log('list of all users : ', data);
-    },
-    onError: (error) => {
-      console.log('The error is : ', error);
-      error?.response?.data?.message
-        ? toast.error(error?.response?.data?.message)
-        : !error?.response
+    queryKey: ['users', pageSize, pageParam, search],
+    queryFn: () => getAllUsers({ per_page: pageSize, page: pageParam, search: search })
+  });
+
+  getListOfUsersRef.current = getListOfUsers;
+
+  const handleMaterialTableQueryPromise = async (query) => {
+    console.log('🚀 ~ handleMaterialTableQueryPromise ~ query:', query);
+    try {
+      setPageParam(query.page + 1); // MaterialTable uses 0-indexed pages
+      setpageSize(query.pageSize);
+      setSearch(query.search);
+
+      console.log('await 1');
+      console.log('await 1 getListOfUsers?.isLoading : ', getListOfUsersRef.current?.isLoading);
+
+      await new Promise((resolve, reject) => {
+        if (!getListOfUsersRef.current?.isLoading) {
+          resolve();
+        } else {
+          const timeoutId = setInterval(() => {
+            console.log('await timer');
+            if (!getListOfUsersRef.current?.isLoading) {
+              resolve();
+              clearInterval(timeoutId);
+            }
+          }, 100);
+        }
+      });
+      console.log('await 2');
+      return new Promise((resolve, reject) => {
+        if (getListOfUsersRef.current?.data?.data?.data) {
+          resolve({
+            data: getListOfUsersRef.current?.data?.data?.data,
+            page: getListOfUsersRef.current?.data?.data.current_page - 1, // Adjust to 0-indexed page
+            totalCount: getListOfUsersRef.current?.data?.data.total
+          });
+        } else {
+          reject(new Error('No data'));
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setLoading(false);
+      throw error;
+    }
+  };
+
+  console.log('🚀 ~ ListRecords ~ getListOfUsers.status:', getListOfUsers.status);
+
+  useEffect(() => {
+    if (getListOfUsers?.isError) {
+      console.log('Error fetching List of Users :', getListOfUsers?.error);
+      getListOfUsers?.error?.response?.data?.message
+        ? toast.error(getListOfUsers?.error?.response?.data?.message)
+        : !getListOfUsers?.error?.response
           ? toast.warning('Check Your Internet Connection Please')
           : toast.error('An Error Occured Please Contact Admin');
-      setLoading(false);
     }
-  });
+  }, [getListOfUsers?.isError]);
   console.log('users list : ', getListOfUsers?.data?.data);
 
+  const [deleteUserMutationIsLoading, setDeleteUserMutationIsLoading] = useState(false);
+  console.log('🚀 ~ ListRecords ~ deleteUserMutationIsLoading:', deleteUserMutationIsLoading);
   const deleteUserMutation = useMutation({
     mutationFn: deleteUserById,
     onSuccess: (data) => {
       queryClient.resetQueries(['users']);
       setLoading(false);
+      setDeleteUserMutationIsLoading(false);
       console.log('deleted user succesfully ooooo: ');
     },
     onError: (err) => {
       console.log('The error is : ', err);
       toast.error('An error occurred!');
       setLoading(false);
+      setDeleteUserMutationIsLoading(false);
     }
   });
 
@@ -127,6 +191,7 @@ function ListRecords({ loggedInUserData }) {
 
   const confirmDelete = () => {
     if (deleteUserId !== null) {
+      setDeleteUserMutationIsLoading(true);
       deleteUserMutation.mutate(deleteUserId);
       setDeleteDialogOpen(false);
       setDeleteUserId(null);
@@ -134,6 +199,7 @@ function ListRecords({ loggedInUserData }) {
   };
 
   const cancelDelete = () => {
+    setDeleteUserMutationIsLoading(false);
     setDeleteDialogOpen(false);
     setDeleteUserId(null);
   };
@@ -162,7 +228,7 @@ function ListRecords({ loggedInUserData }) {
     },
     { title: 'Email', field: 'email' },
     { title: 'Role', field: 'role' },
-    { title: 'Vendor', field: 'vendors.vendor.name', render: (rowData) => rowData?.vendors?.vendor?.name || 'N/A' },
+    // { title: 'Vendor', field: 'vendors.vendor.name', render: (rowData) => rowData?.vendors?.vendor?.name || 'N/A' },
     {
       title: 'Status',
       field: 'status',
@@ -186,7 +252,7 @@ function ListRecords({ loggedInUserData }) {
       <Grid container>
         <Grid item xs={12}>
           <Box sx={{ height: '3rem', m: 1, display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-            {loggedInUserData?.permissions?.includes('create user') && (
+            {loggedInUserData?.permissions?.includes('create') && (
               <Button onClick={handleShowUserForm} variant="contained" color="primary">
                 Add user
               </Button>
@@ -194,13 +260,17 @@ function ListRecords({ loggedInUserData }) {
           </Box>
           <MuiTable
             tableTitle="Users"
-            tableData={getListOfUsers?.data?.data ?? []}
+            tableData={getListOfUsers?.data?.data?.data ?? []}
             tableColumns={columns}
             handleShowEditForm={handleShowEditForm}
             handleDelete={(e, item_id) => handleDelete(e, item_id)}
-            showEdit={loggedInUserData?.permissions?.includes('update user')}
-            showDelete={loggedInUserData?.permissions?.includes('delete user')}
-            loading={loading || getListOfUsers.isLoading || getListOfUsers.status === 'loading'}
+            showEdit={loggedInUserData?.permissions?.includes('update')}
+            showDelete={loggedInUserData?.permissions?.includes('delete')}
+            // loading={getListOfUsers.isLoading || getListOfUsers.status === 'loading' || deleteUserMutationIsLoading}
+            current_page={getListOfUsers?.data?.data?.current_page}
+            totalCount={getListOfUsers?.data?.data?.total}
+            setTableQueryObject={setTableQueryObject}
+            handleMaterialTableQueryPromise={handleMaterialTableQueryPromise}
           />
           <UserDetailsModal user={userDetail} showModal={userDetailShowModal} handleCloseModal={handleCloseUserDetailModal} />
           <EditRecord
