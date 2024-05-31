@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/no-static-element-interactions */
 /* eslint-disable jsx-a11y/click-events-have-key-events */
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 
 import {
   getAllUsers,
@@ -16,7 +16,7 @@ import CreateRecord from './CreateRecord';
 
 import moment from 'moment';
 import { Link } from 'react-router-dom';
-import MuiTable from '../../../components/general_components/MuiTable';
+import ServerSideMuiTable from '../../../components/general_components/ServerSideMuiTable';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import UserDetailsModal from './UserDetailsModal';
 import { toast } from 'react-toastify';
@@ -86,56 +86,35 @@ function ListRecords() {
   const [pageParam, setPageParam] = useState(1);
   const [search, setSearch] = useState();
   const [pageSize, setpageSize] = useState();
+  const [orderBy, setOrderBy] = useState();
+  const [orderDirection, setOrderDirection] = useState();
+  console.log('🚀 ~ ListRecords ~ orderDirection:', orderDirection);
 
   const getListOfUsersRef = useRef();
 
   const getListOfUsers = useQuery({
-    queryKey: ['users', pageSize, pageParam, search],
-    queryFn: () => getAllUsers({ per_page: pageSize, page: pageParam, search: search })
+    queryKey: ['users', pageSize, pageParam, search, orderBy],
+    queryFn: () => getAllUsers({ per_page: pageSize, page: pageParam, search: search, orderBy: orderBy, orderDirection: orderDirection })
   });
+
+  console.log(
+    'is dfdasdsfs loading : ' + getListOfUsers?.isLoading + ' is fetching : ' + getListOfUsers?.isFetching + ' data is : ',
+    getListOfUsers?.data?.data?.data
+  );
 
   getListOfUsersRef.current = getListOfUsers;
 
   const handleMaterialTableQueryPromise = async (query) => {
     console.log('🚀 ~ handleMaterialTableQueryPromise ~ query:', query);
-    try {
-      setPageParam(query.page + 1); // MaterialTable uses 0-indexed pages
-      setpageSize(query.pageSize);
-      setSearch(query.search);
 
-      console.log('await 1');
-      console.log('await 1 getListOfUsers?.isLoading : ', getListOfUsersRef.current?.isLoading);
+    setPageParam(query.page + 1); // MaterialTable uses 0-indexed pages
+    setpageSize(query.pageSize);
+    // eslint-disable-next-line no-extra-boolean-cast
+    setSearch(query.search);
+    setOrderBy(query?.orderBy?.field);
+    setOrderDirection(query?.orderDirection);
 
-      await new Promise((resolve, reject) => {
-        if (!getListOfUsersRef.current?.isLoading) {
-          resolve();
-        } else {
-          const timeoutId = setInterval(() => {
-            console.log('await timer');
-            if (!getListOfUsersRef.current?.isLoading) {
-              resolve();
-              clearInterval(timeoutId);
-            }
-          }, 100);
-        }
-      });
-      console.log('await 2');
-      return new Promise((resolve, reject) => {
-        if (getListOfUsersRef.current?.data?.data?.data) {
-          resolve({
-            data: getListOfUsersRef.current?.data?.data?.data,
-            page: getListOfUsersRef.current?.data?.data.current_page - 1, // Adjust to 0-indexed page
-            totalCount: getListOfUsersRef.current?.data?.data.total
-          });
-        } else {
-          reject(new Error('No data'));
-        }
-      });
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setLoading(false);
-      throw error;
-    }
+    return;
   };
 
   console.log('🚀 ~ ListRecords ~ getListOfUsers.status:', getListOfUsers.status);
@@ -211,6 +190,8 @@ function ListRecords() {
       title: '#',
       width: '5%',
       field: 'name',
+      sorting: false,
+      customFilterAndSearch: (term, rowData) => term == rowData.name.length,
       render: (rowData) => {
         tableId = rowData.tableData.id;
         tableId++;
@@ -220,24 +201,28 @@ function ListRecords() {
     {
       title: 'Name',
       field: 'name',
+      sorting: false,
       render: (rowData) => (
         <span style={{ color: 'blue', cursor: 'pointer' }} onClick={() => handleOpenuserDetailModal(rowData)}>
           {rowData?.name}
         </span>
       )
     },
-    { title: 'Email', field: 'email' },
-    { title: 'Role', field: 'role' },
+    { title: 'Email', field: 'email', sorting: false },
+    { title: 'Role', field: 'role', sorting: false },
+
     // { title: 'Vendor', field: 'vendors.vendor.name', render: (rowData) => rowData?.vendors?.vendor?.name || 'N/A' },
     {
       title: 'Status',
       field: 'status',
+      sorting: false,
       render: (rowData) => <Typography color={rowData.status === 'active' ? 'success' : 'error'}>{rowData.status}</Typography>
     },
     { title: 'Last Login', field: 'lastlogin' },
     {
       title: 'Photo',
       field: 'photo_url',
+      sorting: false,
       render: (rowData) =>
         rowData.photo_url ? (
           <img src={`${import.meta.env.VITE_APP_API_BASE_URL}${rowData.photo_url}`} alt={rowData.name} width="100" />
@@ -258,15 +243,15 @@ function ListRecords() {
               </Button>
             )}
           </Box>
-          <MuiTable
+          <ServerSideMuiTable
             tableTitle="Users"
-            tableData={getListOfUsers?.data?.data?.data ?? []}
+            tableData={getListOfUsers?.data?.data ?? []}
             tableColumns={columns}
             handleShowEditForm={handleShowEditForm}
             handleDelete={(e, item_id) => handleDelete(e, item_id)}
             showEdit={loggedInUserData?.permissions?.includes('update')}
             showDelete={loggedInUserData?.permissions?.includes('delete')}
-            // loading={getListOfUsers.isLoading || getListOfUsers.status === 'loading' || deleteUserMutationIsLoading}
+            loading={getListOfUsers.isLoading || getListOfUsers.status === 'loading' || deleteUserMutationIsLoading}
             current_page={getListOfUsers?.data?.data?.current_page}
             totalCount={getListOfUsers?.data?.data?.total}
             setTableQueryObject={setTableQueryObject}

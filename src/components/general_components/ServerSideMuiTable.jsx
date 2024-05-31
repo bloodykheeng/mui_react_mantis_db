@@ -1,4 +1,4 @@
-import React, { useEffect, useState, forwardRef, useMemo, useRef } from 'react';
+import React, { useEffect, useState, forwardRef, useMemo, useRef, useCallback, memo } from 'react';
 import MaterialTable from '@material-table/core';
 // import MaterialTable from "material-table";
 // import { FileEarmarkBarGraphFill, Trash } from "react-bootstrap-icons";
@@ -30,6 +30,7 @@ import { ExportCsv, ExportPdf } from '@material-table/exporters';
 import ApprovalIcon from '@mui/icons-material/Approval';
 import CancelIcon from '@mui/icons-material/Cancel';
 import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
+import RefreshIcon from '@mui/icons-material/Refresh';
 
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 /* eslint-disable react/display-name */
@@ -53,7 +54,7 @@ const tableIcons = {
   ViewColumn: forwardRef((props, ref) => <ViewColumn {...props} ref={ref} />)
 };
 
-const MuiTable = ({
+const ServerSideMuiTable = ({
   showTextRowsSelected,
   showSelectAllCheckbox,
   exportButton,
@@ -92,9 +93,22 @@ const MuiTable = ({
   totalCount,
   setTableQueryObject = () => {}
 }) => {
+  //
+  const tableRef = useRef();
   const memorisedTableData = useMemo(() => {
     return tableData;
   }, [tableData]);
+
+  const tableDataRef = useRef();
+  tableDataRef.current = memorisedTableData;
+
+  console.log('is dfdasdsfs tableRef.current : ', tableRef.current);
+
+  const loadingRef = useRef();
+  loadingRef.current = loading;
+
+  const [currentQuery, setQuery] = useState({});
+  console.log('🚀 ~ currentQuery:', currentQuery);
 
   const [mTableActions, setMTableActions] = useState([]);
 
@@ -105,6 +119,19 @@ const MuiTable = ({
   const handleMaterialTableCheckboxChange = () => {
     setFilter(!filter);
   };
+
+  useEffect(() => {
+    tableDataRef.current = memorisedTableData;
+  }, [memorisedTableData]);
+
+  // Effect to handle when memorisedTableData changes
+  useEffect(() => {
+    if (tableRef.current && !loading) {
+      const { page, totalCount, ...filteredQuery } = currentQuery;
+      // tableRef.current.onQueryChange(filteredQuery);
+      tableRef.current.onQueryChange(currentQuery);
+    }
+  }, [memorisedTableData]);
 
   // let handleShowRowEdit = (rowData) => {
   //   if (typeof showRowEdit === "function") {
@@ -218,6 +245,8 @@ const MuiTable = ({
   };
 
   let tableOptions = {
+    // debounceInterval: 700,
+    padding: 'dense',
     selection: selection,
     showSelectAllCheckbox: showSelectAllCheckbox,
     showTextRowsSelected: showTextRowsSelected,
@@ -229,11 +258,11 @@ const MuiTable = ({
     },
     doubleHorizontalScroll: true,
     filtering: filter,
-    sorting: true,
+    sorting: false,
     search: true,
     searchFieldAlignment: 'right',
     paging: true,
-    pageSizeOptions: [5, 15, 30, 50, 75, 100],
+    pageSizeOptions: [1, 5, 15, 30, 50, 75, 100],
     pageSize: 5,
     paginationPosition: 'bottom',
     exportAllData: true,
@@ -279,58 +308,88 @@ const MuiTable = ({
     };
   }
 
-  const tableDataRef = useRef();
-  tableDataRef.current = memorisedTableData;
-
   return (
     <div>
       <MaterialTable
+        tableRef={tableRef}
         icons={tableIcons}
         isLoading={loading}
         columns={tableColumns}
         onSelectionChange={(rows) => typeof selectionChange === 'function' && selectionChange(rows)}
-        data={(query) =>
-          new Promise((resolve, reject) => {
-            // setTableQueryObject(query);
-            // prepare your data and then call resolve like this:
-            if (!loading) {
-              handleMaterialTableQueryPromise(query)
-                .then((result) => {
-                  console.log('Yah ive resolvd');
+        data={async (query) => {
+          // setTableQueryObject(query);
+          setQuery(query);
+
+          //make sure this returns something
+          await handleMaterialTableQueryPromise(query);
+
+          let finalres = await new Promise((resolve, reject) => {
+            let intervalId;
+
+            if (loadingRef.current) {
+              console.log('Timeout reached, starting interval checks');
+              const intervalId = setInterval(() => {
+                if (!loadingRef.current) {
+                  console.log('yah ive resolved with time interval');
+                  console.log('Loading finished, resolving promise');
                   resolve({
-                    data: tableDataRef.current,
-                    page: result?.page, // Adjust to 0-indexed page
-                    totalCount: result?.totalCount
+                    data: tableDataRef.current?.data,
+                    page: tableDataRef.current?.current_page - 1, // Adjust to 0-indexed page
+                    totalCount: tableDataRef.current?.total
                   });
-                })
-                .catch((error) => {
-                  console.log('Yah ive resolvd 2');
-                  reject(error);
-                });
+                  clearInterval(intervalId);
+                }
+              }, 100); // Check every 1 millisecond
             }
 
-            // resolve({
-            //   data: tableData,
-            //   page: current_page,
-            //   totalCount: totalCount
-            // });
-          })
-        }
+            const timeoutId = setTimeout(() => {
+              clearInterval(intervalId);
+            }, 120000); // 2 minutes in milliseconds
+
+            // prepare your data and then call resolve like this:
+            if (!loadingRef.current) {
+              console.log('yah ive resolved with !loadingRef.current ', tableDataRef.current?.data);
+              resolve({
+                // data: tableDataRef.current ?? [],
+                data: tableDataRef.current?.data,
+                page: tableDataRef.current?.current_page - 1, // Adjust to 0-indexed page
+                totalCount: tableDataRef.current?.total
+              });
+              clearTimeout(timeoutId); // Clear the timeout if resolved before timeout
+            }
+          });
+
+          return new Promise((resolve, reject) => {
+            resolve(finalres);
+          });
+        }}
         title={tableTitle}
         options={tableOptions}
         actions={[
           {
-            icon: () => (
-              <Checkbox
-                color="primary"
-                checked={filter}
-                onChange={handleMaterialTableCheckboxChange}
-                inputProps={{ 'aria-label': 'primary checkbox' }}
-              />
-            ),
-            tooltip: 'Hide/Show Filter option',
-            isFreeAction: true
+            icon: () => <RefreshIcon />,
+            tooltip: 'refresh',
+            isFreeAction: true,
+            onClick: () => {
+              if (tableRef.current) {
+                setTimeout(() => {
+                  tableRef.current.onQueryChange(currentQuery);
+                }, 300);
+              }
+            }
           },
+          // {
+          //   icon: () => (
+          //     <Checkbox
+          //       color="primary"
+          //       checked={filter}
+          //       onChange={handleMaterialTableCheckboxChange}
+          //       inputProps={{ 'aria-label': 'primary checkbox' }}
+          //     />
+          //   ),
+          //   tooltip: 'Hide/Show Filter option',
+          //   isFreeAction: true
+          // },
           excelexporting && {
             icon: () => <FileDownloadIcon />, // you can pass icon too
             tooltip: 'Export to Excel',
@@ -360,4 +419,4 @@ const MuiTable = ({
   );
 };
 
-export default MuiTable;
+export default memo(ServerSideMuiTable);
